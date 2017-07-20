@@ -298,15 +298,15 @@ int main()
 		// -----
 		processInput(window);
 		// change light position over time
-		lightPos.x = sin(glfwGetTime()) * 3.0f;
-		lightPos.z = cos(glfwGetTime()) * 2.0f;
-		//lightPos.x = -2.5f;
-		//lightPos.z = 0.2f;
+		//lightPos.x = sin(glfwGetTime()) * 3.0f;
+		//lightPos.z = cos(glfwGetTime()) * 2.0f;
+		////lightPos.x = -2.5f;
+		////lightPos.z = 0.2f;
 		//lightPos.y = 5.0 + cos(glfwGetTime()) * 1.0f;
 		// shader configuration
 		// --------------------
 
-		printf("%lf, %lf\n", lightPos.x, lightPos.z);
+		//printf("%lf, %lf\n", lightPos.x, lightPos.z);
 		shader.use();
 		shader.setInt("diffuseTexture", 0);
 		shader.setInt("shadowMap", 1);
@@ -489,7 +489,7 @@ int main()
 		debugDepthQuad.use();
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, singleDilatedDepthMap);
-		renderQuad();
+		//renderQuad();
 		firstTime = 0;
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

@@ -4,8 +4,6 @@ c:\users\aryaman\documents\include\learnopengl\shader.h(64): warning C4101: 'suc
 c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(32): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
 c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(33): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
 c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(293): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(301): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(302): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
 c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(435): warning C4305: 'initializing': truncation from 'double' to 'float'
 c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(436): warning C4305: 'initializing': truncation from 'double' to 'float'
 c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(468): warning C4305: 'initializing': truncation from 'double' to 'float'
@@ -18,5 +16,6 @@ c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\sha
 c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(686): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
 c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(687): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
 c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(696): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
   Shadow Map.vcxproj -> C:\Users\Aryaman\Documents\Visual Studio 2015\Projects\Shadow Map\Debug\Shadow Map.exe
   Shadow Map.vcxproj -> C:\Users\Aryaman\Documents\Visual Studio 2015\Projects\Shadow Map\Debug\Shadow Map.pdb (Full PDB)

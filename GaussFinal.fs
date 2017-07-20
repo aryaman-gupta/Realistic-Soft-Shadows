@@ -108,7 +108,7 @@ void main()
 		//shadowVal = 0.5f;   
         //color = vec3(0.8, 0.5, 0.5);            
 		lighting = (ambient + (1.0 - shadowVal) * (diffuse + specular)) * color;
-		lighting = vec3 (shadowVal);
+		//lighting = vec3 (shadowVal);
 	}
 
 	else
