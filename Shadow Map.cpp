@@ -124,7 +124,7 @@ int main()
 
 	// load textures
 	// -------------
-	unsigned int woodTexture = loadTexture("wood2.png");
+	unsigned int woodTexture = loadTexture("Dark Yellow.png");
 
 	// configure depth map FBO
 	// -----------------------
@@ -170,9 +170,6 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-	glBindFramebuffer(GL_FRAMEBUFFER, dilatedDepthMapFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, singleDilatedDepthMap, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	unsigned int bufferFBO;
 	glGenFramebuffers(1, &bufferFBO);
@@ -298,8 +295,8 @@ int main()
 		// -----
 		processInput(window);
 		// change light position over time
-		//lightPos.x = sin(glfwGetTime()) * 3.0f;
-		//lightPos.z = cos(glfwGetTime()) * 2.0f;
+		lightPos.x = sin(glfwGetTime()) * 3.0f;
+		lightPos.z = cos(glfwGetTime()) * 2.0f;
 		////lightPos.x = -2.5f;
 		////lightPos.z = 0.2f;
 		//lightPos.y = 5.0 + cos(glfwGetTime()) * 1.0f;
@@ -354,6 +351,7 @@ int main()
 		dilatedShadowMap.setFloat("lightSize", 0.1f);
 		glBindFramebuffer(GL_FRAMEBUFFER, dilatedDepthMapFBO);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, singleDilatedDepthMap, 0);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, depthMap);
 		dilatedShadowMap.setVec2("dir", 1, 0);

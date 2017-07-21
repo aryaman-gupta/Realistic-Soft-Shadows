@@ -91,14 +91,14 @@ void main()
 	if (penumbra ==1)
 	{
 		float penumbraSize = 1.0;
-		penumbraSize *= DistanceData.r;
-		penumbraSize *= lightSize;
+		penumbraSize *= DistanceData.r;//DReceiver - DBlocker
+		penumbraSize *= lightSize;//WLight
 		vec3 projCoordsLight = FragPosLightSpace.xyz/FragPosLightSpace.w;
 		projCoordsLight = projCoordsLight * 0.5 + 0.5;
 		float dBlocker = texture(DilatedDepthMap, projCoordsLight.xy).r;
-		penumbraSize /= dBlocker;
+		penumbraSize /= dBlocker;//DBlocker
 		//penumbraSize /= (DistanceData.g);
-		penumbraSize /= FragPosViewSpace.w;
+		penumbraSize /= FragPosViewSpace.w;//DObserver
 
 		vec4 normAndDepth = texture(NormalDepth, projCoords.xy).rgba;
 		vec2 stepSize = get_step_size(normAndDepth.rgb, DistanceData.g, anisoThreshold);
