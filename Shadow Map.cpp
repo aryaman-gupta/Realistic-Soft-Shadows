@@ -186,21 +186,14 @@ int main()
 	unsigned int shadowBuffer;
 	glGenTextures(1, &shadowBuffer);
 	glBindTexture(GL_TEXTURE_2D, shadowBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, SCR_WIDTH, SCR_HEIGHT, 0, GL_RG, GL_UNSIGNED_INT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	unsigned int distanceMap;
 	glGenTextures(1, &distanceMap);
 	glBindTexture(GL_TEXTURE_2D, distanceMap);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	unsigned int shadingBuffer;
-	glGenTextures(1, &shadingBuffer);
-	glBindTexture(GL_TEXTURE_2D, shadingBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -237,7 +230,6 @@ int main()
 
 	glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, shadowBuffer, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, shadingBuffer, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, distanceMap, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, normalDepthBuffer, 0);
 	//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, viewSpaceDepthMap, 0);
@@ -316,8 +308,7 @@ int main()
 		GaussBlurShader.use();
 		GaussBlurShader.setInt("NormalDepth", 0);
 		GaussBlurShader.setInt("ShadowMap", 1);
-		GaussBlurShader.setInt("ShadingBuffer", 2);
-		GaussBlurShader.setInt("DistanceMap", 3);
+		GaussBlurShader.setInt("DistanceMap", 2);
 
 
 		// render
@@ -427,9 +418,8 @@ int main()
 		GaussBlurShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 		GaussBlurShader.setInt("NormalDepth", 0);
 		GaussBlurShader.setInt("ShadowMap", 1);
-		GaussBlurShader.setInt("ShadingBuffer", 2);
-		GaussBlurShader.setInt("DistanceMap", 3);
-		GaussBlurShader.setInt("DilatedDepthMap", 4);
+		GaussBlurShader.setInt("DistanceMap", 2);
+		GaussBlurShader.setInt("DilatedDepthMap", 3);
 		float x = 0.89442719082100156952748325334158 * 1.11803398875;
 		float y = 0.44721359585778655717526397765935 * 1.11803398875;
 		glm::vec2 direction = glm::vec2(x, y);
@@ -439,10 +429,8 @@ int main()
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, shadowBuffer);
 		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, shadingBuffer);
-		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, distanceMap);
-		glActiveTexture(GL_TEXTURE4);
+		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, dilatedDepthMap);
 		renderScene(GaussBlurShader);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -459,10 +447,9 @@ int main()
 		GaussFinalShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 		GaussFinalShader.setInt("NormalDepth", 0);
 		GaussFinalShader.setInt("Gauss1Dilated", 1);
-		GaussFinalShader.setInt("ShadingBuffer", 2);
-		GaussFinalShader.setInt("DistanceMap", 3);
-		GaussFinalShader.setInt("DilatedDepthMap", 4);
-		GaussFinalShader.setInt("diffuseTexture", 5);
+		GaussFinalShader.setInt("DistanceMap", 2);
+		GaussFinalShader.setInt("DilatedDepthMap", 3);
+		GaussFinalShader.setInt("diffuseTexture", 4);
 		float x2 = -0.44721359585778655717526397765935 * 1.11803398875;
 		float y2 = 0.89442719082100156952748325334158 * 1.11803398875;
 		glm::vec2 direction2 = glm::vec2(x2, y2);
@@ -472,12 +459,10 @@ int main()
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, Gauss1Result);
 		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, shadingBuffer);
-		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, distanceMap);
-		glActiveTexture(GL_TEXTURE4);
+		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, dilatedDepthMap);
-		glActiveTexture(GL_TEXTURE5);
+		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, woodTexture);
 		renderScene(GaussFinalShader);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);

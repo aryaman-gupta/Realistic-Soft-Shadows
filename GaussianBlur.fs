@@ -8,7 +8,6 @@ out vec4 FragColor;
 
 uniform sampler2D NormalDepth;
 uniform sampler2D ShadowMap;
-uniform sampler2D ShadingBuffer;
 uniform sampler2D DistanceMap;
 uniform sampler2D DilatedDepthMap;
 
@@ -56,7 +55,6 @@ void main()
 {
 	vec3 projCoords = TexCoords.xyz / TexCoords.w;
 	projCoords = projCoords * 0.5 + 0.5;
-	vec3 temp = texture(ShadingBuffer, projCoords.xy).rgb;
 
 	vec3 DistanceData = texture(DistanceMap, projCoords.xy).rgb;
 
