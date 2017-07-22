@@ -79,6 +79,7 @@ void main()
 		float shadowVal = blur(curShadow, stepSize, DistanceData.g, penumbraSize, projCoords.xy);
 
 		FragColor = vec4(shadowVal, shadowVal, shadowVal, 1.0);
+		//FragColor = vec4(1, 1, 1, 1.0);
 	}
 	else
 	{

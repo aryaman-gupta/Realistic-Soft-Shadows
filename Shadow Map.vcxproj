@@ -170,6 +170,8 @@
     <None Include="3.1.2.shadow_mapping.vs" />
     <None Include="3.1.2.shadow_mapping_depth.fs" />
     <None Include="3.1.2.shadow_mapping_depth.vs" />
+    <None Include="addShadows.fs" />
+    <None Include="addShadows.vs" />
     <None Include="calculate_buffers.fs" />
     <None Include="calculate_buffers.vs" />
     <None Include="dilated_shadow_map.fs" />

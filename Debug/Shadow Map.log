@@ -1,22 +1,23 @@
 ﻿  Shadow Map.cpp
 c:\users\aryaman\documents\include\learnopengl\shader.h(65): warning C4101: 'infoLog': unreferenced local variable
 c:\users\aryaman\documents\include\learnopengl\shader.h(64): warning C4101: 'success': unreferenced local variable
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(32): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(33): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(282): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(290): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(291): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(423): warning C4305: 'initializing': truncation from 'double' to 'float'
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(424): warning C4305: 'initializing': truncation from 'double' to 'float'
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(453): warning C4305: 'initializing': truncation from 'double' to 'float'
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(454): warning C4305: 'initializing': truncation from 'double' to 'float'
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(634): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(661): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(662): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(666): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(667): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(669): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(670): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(679): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(34): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(35): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(328): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(329): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(341): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(473): warning C4305: 'initializing': truncation from 'double' to 'float'
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(474): warning C4305: 'initializing': truncation from 'double' to 'float'
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(492): warning C4305: 'initializing': truncation from 'double' to 'float'
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(493): warning C4305: 'initializing': truncation from 'double' to 'float'
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(698): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(725): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(726): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(730): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(731): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(733): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(734): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(743): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+c:\users\aryaman\documents\visual studio 2015\projects\shadow map\shadow map\shadow map.cpp(74): warning C4715: 'retTexNumber': not all control paths return a value
   Shadow Map.vcxproj -> C:\Users\Aryaman\Documents\Visual Studio 2015\Projects\Shadow Map\Debug\Shadow Map.exe
   Shadow Map.vcxproj -> C:\Users\Aryaman\Documents\Visual Studio 2015\Projects\Shadow Map\Debug\Shadow Map.pdb (Full PDB)

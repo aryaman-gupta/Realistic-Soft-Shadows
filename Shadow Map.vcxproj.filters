@@ -85,5 +85,11 @@
     <None Include="GaussFinal.fs">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="addShadows.vs">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="addShadows.fs">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

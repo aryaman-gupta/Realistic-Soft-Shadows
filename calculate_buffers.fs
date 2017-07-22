@@ -1,9 +1,8 @@
-#version 330 core
+#version 410 core
 
 layout (location = 0) out vec2 ShadowMapOP;
-layout (location = 1) out vec4 ShadingOP;
-layout (location = 2) out vec3 DistanceMapOP;
-layout (location = 3) out vec4 NormalDepthOP;
+layout (location = 1) out vec3 DistanceMapOP;
+layout (location = 2) out vec4 NormalDepthOP;
 
 in VS_OUT {
     vec3 FragPos;
@@ -14,7 +13,6 @@ in VS_OUT {
 
 uniform sampler2D shadowMap;
 uniform sampler2D dilatedShadowMap;
-uniform sampler2D diffuseTexture;
 
 uniform vec3 lightPos;
 uniform vec3 viewPos;
