@@ -11,11 +11,12 @@
 #include <learnopengl/shader.h>
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
-
+#include <list>
 #include <iostream>
 
-#define NUM_LIGHTS 2
+#define NUM_LIGHTS 3
 
+bool isIntersect(glm::mat4 projection1, glm::mat4 view1, glm::mat4 projection2, glm::mat4 view2);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -73,6 +74,84 @@ GLenum retTexNumber(int i)
 		return GL_TEXTURE10;
 }
 
+class Graph
+{
+	int V;    // No. of vertices
+	list<int> *adj;    // A dynamic array of adjacency lists
+public:
+	// Constructor and destructor
+	Graph(int V) { this->V = V; adj = new list<int>[V]; }
+	~Graph() { delete[] adj; }
+
+	// function to add an edge to graph
+	void addEdge(int v, int w);
+
+	// Prints greedy coloring of the vertices
+	int greedyColoring(int layersAssigned[NUM_LIGHTS]);
+};
+
+void Graph::addEdge(int v, int w)
+{
+	adj[v].push_back(w);
+	adj[w].push_back(v);  // Note: the graph is undirected
+}
+
+// Assigns colors (starting from 0) to all vertices and prints
+// the assignment of colors
+int Graph::greedyColoring(int layersAssigned[NUM_LIGHTS])
+{
+	int* result = new int[V];
+	int assigned = 0;
+
+	// Assign the first color to first vertex
+	result[0] = 0;
+	layersAssigned[0] = 0;
+	// Initialize remaining V-1 vertices as unassigned
+	for (int u = 1; u < V; u++)
+		result[u] = -1;  // no color is assigned to u
+
+						 // A temporary array to store the available colors. True
+						 // value of available[cr] would mean that the color cr is
+						 // assigned to one of its adjacent vertices
+	bool* available = new bool[V];
+	for (int cr = 0; cr < V; cr++)
+		available[cr] = false;
+
+	// Assign colors to remaining V-1 vertices
+	for (int u = 1; u < V; u++)
+	{
+		// Process all adjacent vertices and flag their colors
+		// as unavailable
+		list<int>::iterator i;
+		for (i = adj[u].begin(); i != adj[u].end(); ++i)
+			if (result[*i] != -1)
+				available[result[*i]] = true;
+
+		// Find the first available color
+		int cr;
+		for (cr = 0; cr < V; cr++)
+			if (available[cr] == false)
+				break;
+
+		result[u] = cr; // Assign the found color
+		layersAssigned[u] = cr;
+		if (cr > assigned)
+			assigned = cr;
+						// Reset the values back to false for the next iteration
+		for (i = adj[u].begin(); i != adj[u].end(); ++i)
+			if (result[*i] != -1)
+				available[result[*i]] = false;
+	}
+
+	// print the result
+	for (int u = 0; u < V; u++)
+		cout << "Vertex " << u << " --->  Color "
+		<< result[u] << endl;
+
+	return assigned;
+}
+
+
 int main()
 {
 
@@ -123,6 +202,8 @@ int main()
 	Shader GaussBlurShader("GaussianBlur.vs", "GaussianBlur.fs");
 	Shader GaussFinalShader("GaussFinal.vs", "GaussFinal.fs");
 	Shader CombineShadowsShader("addShadows.vs", "addShadows.fs");
+	Shader penumbraSizeShader("calculatePenumbraSize.vs", "calculatePenumbraSize.fs");
+	Shader deferredLightingShader("DeferredLighting.vs", "DeferredLighting.fs");
 
 
 	// set up vertex data (and buffer(s)) and configure vertex attributes
@@ -219,7 +300,7 @@ int main()
 	unsigned int shadowBuffer;
 	glGenTextures(1, &shadowBuffer);
 	glBindTexture(GL_TEXTURE_2D, shadowBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, SCR_WIDTH, SCR_HEIGHT, 0, GL_RG, GL_UNSIGNED_INT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG, SCR_WIDTH, SCR_HEIGHT, 0, GL_RG, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -258,11 +339,11 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	unsigned int GaussLightResult[NUM_LIGHTS];
+	unsigned int GaussLayerResult[NUM_LIGHTS];
 	for (int i = 0; i < NUM_LIGHTS; i++)
 	{
-		glGenTextures(1, &GaussLightResult[i]);
-		glBindTexture(GL_TEXTURE_2D, GaussLightResult[i]);
+		glGenTextures(1, &GaussLayerResult[i]);
+		glBindTexture(GL_TEXTURE_2D, GaussLayerResult[i]);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -297,31 +378,99 @@ int main()
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, CombinedShadows, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	//glEnable(GL_CULL_FACE);
-	//glCullFace(GL_BACK​);
-	// lighting info
-	// -------------
+	unsigned int penumbraSizeFBO;
+	glGenFramebuffers(1, &penumbraSizeFBO);
+
+
+	Graph g(NUM_LIGHTS);
 	glm::vec3 lightPos[NUM_LIGHTS];
 	float lightSize[NUM_LIGHTS];
-	lightSize[0] = 0.1f;
-	lightSize[1] = 0.2f;
-	lightPos[0] = (glm::vec3(-2.0f, 4.0f, -1.0f));
-	lightPos[1] = (glm::vec3(2.0f, 5.0f, -1.0f));
+	glm::vec3 lightColor[NUM_LIGHTS];
+	float linearAttn[NUM_LIGHTS];
+	float quadraticAttn[NUM_LIGHTS];
 	glm::mat4 lightProjection[NUM_LIGHTS], lightView[NUM_LIGHTS];
-	float near_plane = 1.0f, far_plane = 7.5f;
-	lightProjection[0] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-	lightView[0] = glm::lookAt(lightPos[0], glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+	int layersAssigned[NUM_LIGHTS];
 
+	float near_plane = 1.0f, far_plane = 7.5f;
+	//Define the lights below
+	lightSize[0] = 0.1f;
+	lightPos[0] = (glm::vec3(-2.0f, 4.0f, -1.0f));
+	lightProjection[0] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+	lightView[0] = glm::lookAt(lightPos[0], glm::vec3(-2.0f, 4.0f, 6.5f), glm::vec3(0.0, 1.0, 0.0));
+	lightColor[0] = glm::vec3(0.3f);
+	linearAttn[0] = 0.0f;
+	quadraticAttn[0] = 0.0f;
+
+	lightSize[1] = 0.2f;
+	lightPos[1] = (glm::vec3(2.0f, 5.0f, -1.0f));
 	lightProjection[1] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 	lightView[1] = glm::lookAt(lightPos[1], glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-	int firstTime = 1;
-	// render loop
-	// -----------
+	lightColor[1] = glm::vec3(0.3f);
+	linearAttn[1] = 0.0f;
+	quadraticAttn[1] = 0.0f;
+
+	lightSize[2] = 0.2f;
+	lightPos[2] = (glm::vec3(200.0f, 500.0f, 100.0f));
+	lightProjection[2] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+	lightView[2] = glm::lookAt(lightPos[2], glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+	lightColor[2] = glm::vec3(0.3f);
+	linearAttn[2] = 0.0f;
+	quadraticAttn[2] = 0.0f;
+
+	for (int l = 0; l < NUM_LIGHTS; l++)
+	{
+		printf("Projection matrix of light %d\n", l);
+
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				printf("%f, ", lightProjection[0][i][j]);
+			}
+			printf("\n");
+		}
+		printf("\n");
+
+		printf("View matrix of light %d\n", l);
 
 
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				printf("%f, ", lightView[0][i][j]);
+			}
+			printf("\n");
+		}
+		printf("\n");
+	}
+	
+
+	for (int i = 0; i < NUM_LIGHTS; i++)
+	{
+		for (int j = i + 1; j < NUM_LIGHTS; j++)
+		{
+			if (isIntersect(lightProjection[i], lightView[i], lightProjection[j], lightView[j]))
+			{
+				g.addEdge(i, j);
+				printf("Lights %d and %d intersect\n", i, j);
+			}
+		}
+	}
+	int numLayers = g.greedyColoring(layersAssigned);
+	
+	unsigned int penumbraSize;
+	
+	glGenTextures(1, &penumbraSize);
+	glBindTexture(GL_TEXTURE_2D, penumbraSize);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	
 
 	while (!glfwWindowShouldClose(window))
 	{
+		processInput(window);
 		glm::mat4 projection;
 		glm::mat4 view;
 
@@ -329,204 +478,314 @@ int main()
 		lightPos[0].z = cos(glfwGetTime()) * 2.0f;
 		lightProjection[0] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 		lightView[0] = glm::lookAt(lightPos[0], glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+
+		glm::mat4 lightSpaceMatrix[NUM_LIGHTS];
 		for (int i = 0; i < NUM_LIGHTS; i++)
 		{
-
-			clock_t t = clock();
-
-			double sec = t / (double)CLOCKS_PER_SEC;
-			//glm::vec3 lightPos((float)sin(sec), (float)cos(sec), -1.0f);
-			// per-frame time logic	
-			// --------------------
-			float currentFrame = glfwGetTime();
-			deltaTime = currentFrame - lastFrame;
-			lastFrame = currentFrame;
-			glEnable(GL_DEPTH_TEST);
-			// input
-			// -----
-			processInput(window);
-			// change light position over time
-
-			////lightPos.x = -2.5f;
-			////lightPos.z = 0.2f;
-			//lightPos.y = 5.0 + cos(glfwGetTime()) * 1.0f;
-			// shader configuration
-			// --------------------
-
-			//printf("%lf, %lf\n", lightPos.x, lightPos.z);
-			shader.use();
-			shader.setInt("diffuseTexture", 0);
-			shader.setInt("shadowMap", 1);
-
-			debugDepthQuad.use();
-			debugDepthQuad.setInt("depthMap", 0);
-			dilatedShadowMap.use();
-			dilatedShadowMap.setInt("depth_map", 0);
-
-
-
-			// render
-			// ------
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-			glClear(GL_DEPTH_BUFFER_BIT);
-
-			// 1. render depth of scene to texture (from light's perspective)
-			// --------------------------------------------------------------
-
-			glm::mat4 lightSpaceMatrix[NUM_LIGHTS];
-
 			lightSpaceMatrix[i] = lightProjection[i] * lightView[i];
-			// render scene from light's point of view
-			simpleDepthShader.use();
-			simpleDepthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix[i]);
-			glViewport(0, 0, temp, temp);
-			glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-			glClear(GL_DEPTH_BUFFER_BIT);
-			renderScene(simpleDepthShader);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
 
-			glDisable(GL_DEPTH_TEST);
-			//Apply Minfilter to depth map
-			// reset viewport
-			glViewport(0, 0, temp / 10, temp);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			dilatedShadowMap.use();
-			dilatedShadowMap.setFloat("lightSize",lightSize[i]);
-			glBindFramebuffer(GL_FRAMEBUFFER, dilatedDepthMapFBO);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, singleDilatedDepthMap, 0);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, depthMap);
-			dilatedShadowMap.setVec2("dir", 1, 0);
-			renderQuad();
-			glViewport(0, 0, temp / 10, temp / 10);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, dilatedDepthMap, 0);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, singleDilatedDepthMap);
-			dilatedShadowMap.setVec2("dir", 0, 1);
-			renderQuad();
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-
-
-			glEnable(GL_DEPTH_TEST);
-			glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			projection = glm::perspective(camera.Zoom, (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-			view = camera.GetViewMatrix();
-			//// 2. render scene as normal using the generated depth/shadow map  
-			//// --------------------------------------------------------------
-			//glBindFramebuffer(GL_FRAMEBUFFER, tempFBO);
-			//shader.use();
-
-			//shader.setMat4("projection", projection);
-			//shader.setMat4("view", view);
-			//// set light uniforms
-			//shader.setVec3("viewPos", camera.Position);
-			//shader.setVec3("lightPos", lightPos[i]);
-			//shader.setMat4("lightSpaceMatrix", lightSpaceMatrix[i]);
-			//glActiveTexture(GL_TEXTURE0);
-			//glBindTexture(GL_TEXTURE_2D, woodTexture);
-			//glActiveTexture(GL_TEXTURE1);
-			//glBindTexture(GL_TEXTURE_2D, depthMap);
-			//renderScene(shader);
-			//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-			calculateBuffers.use();
+		for (int i = 0; i <= numLayers; i++)
+		{
 			glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
 			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-			glDrawBuffers(3, buffers);
-			calculateBuffers.setMat4("projection", projection);
-			calculateBuffers.setMat4("view", view);
-			calculateBuffers.setInt("shadowMap", 0);
-			calculateBuffers.setInt("dilatedShadowMap", 1);
-			calculateBuffers.setVec3("viewPos", camera.Position);
-			calculateBuffers.setVec3("lightPos", lightPos[i]);
-			calculateBuffers.setMat4("lightSpaceMatrix", lightSpaceMatrix[i]);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, depthMap);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, dilatedDepthMap);
-			renderScene(calculateBuffers);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-			glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+			glBindFramebuffer(GL_FRAMEBUFFER, penumbraSizeFBO);
+			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+			for (int j = 0; j < NUM_LIGHTS; j++)
+			{
+				if (layersAssigned[j] == i)
+				{
+					glEnable(GL_DEPTH_TEST);
+					//Calculate Depth Map
+					glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+					simpleDepthShader.use();
+					simpleDepthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix[j]);
+					glViewport(0, 0, temp, temp);
+					glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+					glClear(GL_DEPTH_BUFFER_BIT);
+					renderScene(simpleDepthShader);
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+					glDisable(GL_DEPTH_TEST);
 
 
+					//Dilate the depth map
+					debugDepthQuad.use();
+					debugDepthQuad.setInt("depthMap", 0);
+
+					glViewport(0, 0, temp / 10, temp);
+					dilatedShadowMap.use();
+					dilatedShadowMap.setInt("depth_map", 0);
+					dilatedShadowMap.setFloat("lightSize",lightSize[j]);
+					glBindFramebuffer(GL_FRAMEBUFFER, dilatedDepthMapFBO);
+					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, singleDilatedDepthMap, 0);
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, depthMap);
+					dilatedShadowMap.setVec2("dir", 1, 0);
+					renderQuad();
+					glViewport(0, 0, temp / 10, temp / 10);
+					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, dilatedDepthMap, 0);
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, singleDilatedDepthMap);
+					dilatedShadowMap.setVec2("dir", 0, 1);
+					renderQuad();
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+					//Calculate Buffers
+					glEnablei(GL_BLEND, 0);
+					glBlendFunc(GL_ONE, GL_ONE);
+					glBlendEquation(GL_ADD);
+					glEnable(GL_DEPTH_TEST);
+					glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+					projection = glm::perspective(camera.Zoom, (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+					view = camera.GetViewMatrix();
+
+					calculateBuffers.use();
+					glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
+					GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+					glDrawBuffers(3, buffers);
+					calculateBuffers.setMat4("projection", projection);
+					calculateBuffers.setMat4("view", view);
+					calculateBuffers.setInt("shadowMap", 0);
+					calculateBuffers.setInt("dilatedShadowMap", 1);
+					calculateBuffers.setVec3("viewPos", camera.Position);
+					calculateBuffers.setVec3("lightPos", lightPos[j]);
+					calculateBuffers.setMat4("lightSpaceMatrix", lightSpaceMatrix[j]);
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, depthMap);
+					glActiveTexture(GL_TEXTURE1);
+					glBindTexture(GL_TEXTURE_2D, dilatedDepthMap);
+					renderScene(calculateBuffers);
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					glDisablei(GL_BLEND, 0);
+
+
+					//Calculate penumbra sizes
+					glEnable(GL_BLEND);
+					glBlendFunc(GL_ONE, GL_ONE);
+					glBlendEquation(GL_ADD);
+					glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+					glBindFramebuffer(GL_FRAMEBUFFER, penumbraSizeFBO);
+					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, penumbraSize, 0);
+					penumbraSizeShader.use();
+					penumbraSizeShader.setMat4("projection", projection);
+					penumbraSizeShader.setMat4("view", view);
+					penumbraSizeShader.setFloat("lightSize", lightSize[j]);
+					penumbraSizeShader.setMat4("lightSpaceMatrix", lightSpaceMatrix[j]);
+					penumbraSizeShader.setInt("NormalDepth", 0);
+					penumbraSizeShader.setInt("ShadowMap", 1);
+					penumbraSizeShader.setInt("DistanceMap", 2);
+					penumbraSizeShader.setInt("DilatedDepthMap", 3);
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, normalDepthBuffer);
+					glActiveTexture(GL_TEXTURE1);
+					glBindTexture(GL_TEXTURE_2D, shadowBuffer);
+					glActiveTexture(GL_TEXTURE2);
+					glBindTexture(GL_TEXTURE_2D, distanceMap);
+					glActiveTexture(GL_TEXTURE3);
+					glBindTexture(GL_TEXTURE_2D, dilatedDepthMap);
+					renderScene(penumbraSizeShader);
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					glDisable(GL_BLEND);
+				}
+			}
+				
+			//Blur shadow map
+			//Penumbra Size Texture also contains step sizes
+			//Shadow map also contains distance from viewer to pixel
 			glBindFramebuffer(GL_FRAMEBUFFER, Gauss1FBO);
 			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, Gauss1Result, 0);
-			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			GaussBlurShader.use();
-			GaussBlurShader.setMat4("projection", projection);
-			GaussBlurShader.setMat4("view", view);
-			GaussBlurShader.setFloat("lightSize", lightSize[i]);
-			GaussBlurShader.setMat4("lightSpaceMatrix", lightSpaceMatrix[i]);
-			GaussBlurShader.setInt("NormalDepth", 0);
-			GaussBlurShader.setInt("ShadowMap", 1);
+			GaussBlurShader.setInt("ShadowMap", 0);
+			GaussBlurShader.setInt("PenumbraSizeMap", 1);
 			GaussBlurShader.setInt("DistanceMap", 2);
-			GaussBlurShader.setInt("DilatedDepthMap", 3);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, shadowBuffer);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, penumbraSize);
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, distanceMap);
 			float x = 0.89442719082100156952748325334158 * 1.11803398875;
 			float y = 0.44721359585778655717526397765935 * 1.11803398875;
 			glm::vec2 direction = glm::vec2(x, y);
 			GaussBlurShader.setVec2("direction", direction);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, normalDepthBuffer);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, shadowBuffer);
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, distanceMap);
-			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_2D, dilatedDepthMap);
-			renderScene(GaussBlurShader);
-			//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-			//glBindFramebuffer(GL_FRAMEBUFFER, Gauss1FBO);
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			//glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GaussLightResult[i], 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GaussLayerResult[i], 0);
 			float x2 = -0.44721359585778655717526397765935 * 1.11803398875;
 			float y2 = 0.89442719082100156952748325334158 * 1.11803398875;
 			glm::vec2 direction2 = glm::vec2(x2, y2);
 			GaussFinalShader.setVec2("direction", direction2);
-			glActiveTexture(GL_TEXTURE1);
+			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, Gauss1Result);
 			renderScene(GaussBlurShader);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
-		glBindFramebuffer(GL_FRAMEBUFFER, combineShadowsFBO);
-		CombineShadowsShader.use();
-		CombineShadowsShader.setInt("numLights", NUM_LIGHTS);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		deferredLightingShader.use();
+		deferredLightingShader.setInt("anumLights", NUM_LIGHTS);
+		deferredLightingShader.setMat4("projection", projection);
+		deferredLightingShader.setMat4("view", view);
 		for (int i = 0; i < NUM_LIGHTS; i++)
 		{
-			CombineShadowsShader.setInt(string("lightShadowMaps[") + string(std::to_string(i)) + string("]"), i);
-			//CombineShadowsShader.setInt("lightShadowMaps[0]", 0);
-			glActiveTexture(retTexNumber(i));
-			glBindTexture(GL_TEXTURE_2D, GaussLightResult[i]);
+			deferredLightingShader.setVec3(string("lightPositions[") + string(std::to_string(i)) + string("]"), lightPos[i]);
+			deferredLightingShader.setFloat(string("linearAttn[") + string(std::to_string(i)) + string("]"), linearAttn[i]);
+			deferredLightingShader.setFloat(string("quadraticAttn[") + string(std::to_string(i)) + string("]"), quadraticAttn[i]);
+			deferredLightingShader.setMat4(string("lightSpaceMatrix[") + string(std::to_string(i)) + string("]"), lightSpaceMatrix[i]);
+			deferredLightingShader.setVec3(string("lightColors[") + string(std::to_string(i)) + string("]"), lightColor[i]);
+			deferredLightingShader.setInt(string("assignedLayer[") + string(std::to_string(i)) + string("]"), layersAssigned[i]);
 		}
-		renderQuad();
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, GaussFinalFBO);
-		//glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		GaussFinalShader.use();
-		GaussFinalShader.setMat4("projection", projection);
-		GaussFinalShader.setMat4("view", view);
-		GaussFinalShader.setVec3("viewPos", camera.Position);
-		GaussFinalShader.setVec3("lightPos", lightPos[0]);
-		GaussFinalShader.setInt("FinalShadowMap", 0);
-		GaussFinalShader.setInt("diffuseTexture", 1);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, CombinedShadows);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, woodTexture);
-		renderScene(GaussFinalShader);
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		for (int i = 0; i < NUM_LIGHTS; i++)
+		{
+			deferredLightingShader.setInt(string("layerShadowMaps[") + string(std::to_string(i)) + string("]"), i);
+			//CombineShadowsShader.setInt("layerShadowMaps[0]", 0);
+			glActiveTexture(retTexNumber(i));
+			glBindTexture(GL_TEXTURE_2D, GaussLayerResult[i]);
+		}
+
+		renderScene(deferredLightingShader);
+
+	////glm::mat4 vp = lightProjection[0] * lightView[0];
+
+	////for (int i = 0; i < 4; i++)
+	////{
+	////	for (int j = 0; j < 4; j++)
+	////	{
+	////		printf("%f, ", glm::inverse(lightView[0])[i][j]);
+	////	}
+	////	printf("\n");
+	////}
+
+	////glm::mat4 tmp = glm::inverse(lightView[0]) * glm::inverse(lightProjection[0]);
+
+	////bool intr = isIntersect(lightProjection[0], lightView[0], lightProjection[0], lightView[0]);
+
+
+	////glm::vec4 te = tmp * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	////printf("\n%f, %f, %f, %f\n", te.x, te.y, te.z, te.w);
+	////te = glm::inverse(lightView[0]) * (glm::inverse(lightProjection[0]) * glm::vec4(1.0f, 1.0f, -1.0f, 1.0f));
+	////printf("\n%f, %f, %f, %f\n", te.x, te.y, te.z, te.w);
+	////te = glm::inverse(lightView[0]) * (glm::inverse(lightProjection[0]) * glm::vec4(1.0f, -1.0f, 1.0f, 1.0f));
+	////printf("\n%f, %f, %f, %f\n", te.x, te.y, te.z, te.w);
+	////te = tmp * glm::vec4(1.0f, -1.0f, -1.0f, 1.0f);
+	////printf("\n%f, %f, %f, %f\n", te.x, te.y, te.z, te.w);
+	////te = tmp * glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f);
+	////printf("\n%f, %f, %f, %f\n", te.x, te.y, te.z, te.w);
+	////te = glm::inverse(lightView[0]) * (glm::inverse(lightProjection[0]) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f));
+	////printf("\n%f, %f, %f, %f\n", te.x, te.y, te.z, te.w);
+	////te = tmp * glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f);
+	////printf("\n%f, %f, %f, %f\n", te.x, te.y, te.z, te.w);
+	////te = glm::inverse(lightView[0]) * (glm::inverse(lightProjection[0]) * glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f));
+	////printf("\n%f, %f, %f, %f\n", te.x, te.y, te.z, te.w);
+	//int firstTime = 1;
+	//// render loop
+	//// -----------
+
+
+
+	//	for (int i = 0; i < NUM_LIGHTS; i++)
+	//	{
+
+	//		clock_t t = clock();
+
+	//		double sec = t / (double)CLOCKS_PER_SEC;
+	//		//glm::vec3 lightPos((float)sin(sec), (float)cos(sec), -1.0f);
+	//		// per-frame time logic	
+	//		// --------------------
+	//		float currentFrame = glfwGetTime();
+	//		deltaTime = currentFrame - lastFrame;
+	//		lastFrame = currentFrame;
+	//		// input
+	//		// -----
+	//		// change light position over time
+
+	//		////lightPos.x = -2.5f;
+	//		////lightPos.z = 0.2f;
+	//		//lightPos.y = 5.0 + cos(glfwGetTime()) * 1.0f;
+	//		// shader configuration
+	//		// --------------------
+
+	//		//printf("%lf, %lf\n", lightPos.x, lightPos.z);
+	//		shader.use();
+	//		shader.setInt("diffuseTexture", 0);
+	//		shader.setInt("shadowMap", 1);
+
+
+
+
+	//		// render
+	//		// ------
+	//		//Apply Minfilter to depth map
+	//		// reset viewport
+
+
+
+
+	//		//// 2. render scene as normal using the generated depth/shadow map  
+	//		//// --------------------------------------------------------------
+	//		//glBindFramebuffer(GL_FRAMEBUFFER, tempFBO);
+	//		//shader.use();
+
+	//		//shader.setMat4("projection", projection);
+	//		//shader.setMat4("view", view);
+	//		//// set light uniforms
+	//		//shader.setVec3("viewPos", camera.Position);
+	//		//shader.setVec3("lightPos", lightPos[i]);
+	//		//shader.setMat4("lightSpaceMatrix", lightSpaceMatrix[i]);
+	//		//glActiveTexture(GL_TEXTURE0);
+	//		//glBindTexture(GL_TEXTURE_2D, woodTexture);
+	//		//glActiveTexture(GL_TEXTURE1);
+	//		//glBindTexture(GL_TEXTURE_2D, depthMap);
+	//		//renderScene(shader);
+	//		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+
+
+	//	}
+	//	glBindFramebuffer(GL_FRAMEBUFFER, combineShadowsFBO);
+	//	CombineShadowsShader.use();
+	//	CombineShadowsShader.setInt("numLights", NUM_LIGHTS);
+	//	for (int i = 0; i < NUM_LIGHTS; i++)
+	//	{
+	//		CombineShadowsShader.setInt(string("lightShadowMaps[") + string(std::to_string(i)) + string("]"), i);
+	//		//CombineShadowsShader.setInt("lightShadowMaps[0]", 0);
+	//		glActiveTexture(retTexNumber(i));
+	//		glBindTexture(GL_TEXTURE_2D, GaussLayerResult[i]);
+	//	}
+	//	renderQuad();
+	//	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//	glBindFramebuffer(GL_FRAMEBUFFER, GaussFinalFBO);
+	//	//glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	//	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//	GaussFinalShader.use();
+	//	GaussFinalShader.setMat4("projection", projection);
+	//	GaussFinalShader.setMat4("view", view);
+	//	GaussFinalShader.setVec3("viewPos", camera.Position);
+	//	GaussFinalShader.setVec3("lightPos", lightPos[0]);
+	//	GaussFinalShader.setInt("FinalShadowMap", 0);
+	//	GaussFinalShader.setInt("diffuseTexture", 1);
+	//	glActiveTexture(GL_TEXTURE0);
+	//	glBindTexture(GL_TEXTURE_2D, CombinedShadows);
+	//	glActiveTexture(GL_TEXTURE1);
+	//	glBindTexture(GL_TEXTURE_2D, woodTexture);
+	//	renderScene(GaussFinalShader);
+	//	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -536,8 +795,7 @@ int main()
 		debugDepthQuad.use();
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, GaussFinalResult);
-		renderQuad();
-		firstTime = 0;
+		//renderQuad();
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		// -------------------------------------------------------------------------------
@@ -552,6 +810,39 @@ int main()
 
 	glfwTerminate();
 	return 0;
+}
+
+float retDistance(glm::vec3 a, glm::vec3 b)
+{
+	return sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y) + (b.z - a.z) * (b.z - a.z));
+}
+
+bool isIntersect(glm::mat4 projection1, glm::mat4 view1, glm::mat4 projection2, glm::mat4 view2)
+{
+	glm::vec4 C1NearLowLeft, C1FarTopRight, C2NearLowLeft, C2FarTopRight;
+
+	glm::mat4 C1InvVP = glm::inverse(view1) * glm::inverse(projection1);
+	glm::mat4 C2InvVP = glm::inverse(view2) * glm::inverse(projection2);
+
+	C1NearLowLeft = C1InvVP * glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f);
+	C1FarTopRight = C1InvVP * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	C2NearLowLeft = C2InvVP * glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f);
+	C2FarTopRight = C2InvVP * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	glm::vec3 C1Center = glm::vec3((C1NearLowLeft.x + C1FarTopRight.x)/2.0f, (C1NearLowLeft.y + C1FarTopRight.y) / 2.0f, (C1NearLowLeft.z + C1FarTopRight.z) / 2.0f);
+	glm::vec3 C2Center = glm::vec3((C2NearLowLeft.x + C2FarTopRight.x) / 2.0f, (C2NearLowLeft.y + C2FarTopRight.y) / 2.0f, (C2NearLowLeft.z + C2FarTopRight.z) / 2.0f);
+
+	float CenterToCenter = retDistance(C1Center, C2Center);
+
+	float Radius1 = retDistance(C1Center, glm::vec3(C1NearLowLeft));
+
+	float Radius2 = retDistance(C2Center, glm::vec3(C2NearLowLeft));
+	printf("Radius1 = %f, Radius2 = %f, C2C = %f\n", Radius1, Radius2, CenterToCenter);
+	if (Radius1 + Radius2 < CenterToCenter)
+		return false;
+	else
+		return true;
 }
 
 // renders the 3D scene

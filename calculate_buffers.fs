@@ -76,7 +76,7 @@ void main()
 	bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);  
 	vec3 distanceMap = returnDistanceMap(fs_in.FragPosLightSpace);
     float shadow = ShadowCalculation(fs_in.FragPosLightSpace, normal, lightDir);                        
-	ShadowMapOP = vec2(shadow, 0);
+	ShadowMapOP = vec2(shadow, distanceMap.g);
 	DistanceMapOP = distanceMap;
 	if(gl_FragCoord.z > 1.0)
 		NormalDepthOP = vec4 (normal, 0.0);
