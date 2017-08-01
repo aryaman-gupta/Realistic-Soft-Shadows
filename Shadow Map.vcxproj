@@ -176,6 +176,8 @@
     <None Include="calculatePenumbraSize.vs" />
     <None Include="calculate_buffers.fs" />
     <None Include="calculate_buffers.vs" />
+    <None Include="CopyTexture.fs" />
+    <None Include="CopyTexture.vs" />
     <None Include="DeferredLighting.fs" />
     <None Include="DeferredLighting.vs" />
     <None Include="dilated_shadow_map.fs" />

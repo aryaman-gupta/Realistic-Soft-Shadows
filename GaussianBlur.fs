@@ -53,23 +53,27 @@ void main()
 	projCoords = projCoords * 0.5 + 0.5;
 
 	vec3 penumbraData = texture(PenumbraSizeMap, projCoords.xy).rgb;
-	vec2 shadowData = texture(ShadowMap, projCoords.xy).rg;
 
 	float penumbraSize = penumbraData.r;
 	vec2 stepSize = penumbraData.gb * direction;
 
-	float curShadow = shadowData.r;
-	float distance = texture(DistanceMap, projCoords.xy).g;
+	float curShadow = texture(ShadowMap, projCoords.xy).r;
+	vec3 DistanceData = texture(DistanceMap, projCoords.xy).rgb;
+	float distance = DistanceData.g;
 
-	if(penumbraSize>0.0)
+	float checkPenumbra = DistanceData.b;
+
+		
+	if(penumbraSize > 0.0)
 	{
 		float shadowVal = blur(curShadow, stepSize, distance, penumbraSize, projCoords.xy);
 		FragColor = vec4(shadowVal, shadowVal, shadowVal, 1.0);
+		//FragColor = vec4(1.0);
 	}
 
 	else
 	{
-		FragColor = vec4(0, 0, 0, 1.0);
+		FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 	}
 }
 

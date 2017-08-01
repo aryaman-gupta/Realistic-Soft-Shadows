@@ -14,7 +14,7 @@
 #include <list>
 #include <iostream>
 
-#define NUM_LIGHTS 3
+#define NUM_LIGHTS 4
 
 bool isIntersect(glm::mat4 projection1, glm::mat4 view1, glm::mat4 projection2, glm::mat4 view2);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -76,79 +76,69 @@ GLenum retTexNumber(int i)
 
 class Graph
 {
-	int V;    // No. of vertices
-	list<int> *adj;    // A dynamic array of adjacency lists
+	int V;
+	list<int> *adj;
 public:
-	// Constructor and destructor
+
 	Graph(int V) { this->V = V; adj = new list<int>[V]; }
 	~Graph() { delete[] adj; }
 
-	// function to add an edge to graph
+
 	void addEdge(int v, int w);
 
-	// Prints greedy coloring of the vertices
+
 	int greedyColoring(int layersAssigned[NUM_LIGHTS]);
 };
 
 void Graph::addEdge(int v, int w)
 {
 	adj[v].push_back(w);
-	adj[w].push_back(v);  // Note: the graph is undirected
+	adj[w].push_back(v);
 }
 
-// Assigns colors (starting from 0) to all vertices and prints
-// the assignment of colors
+
 int Graph::greedyColoring(int layersAssigned[NUM_LIGHTS])
 {
 	int* result = new int[V];
 	int assigned = 0;
 
-	// Assign the first color to first vertex
 	result[0] = 0;
 	layersAssigned[0] = 0;
-	// Initialize remaining V-1 vertices as unassigned
-	for (int u = 1; u < V; u++)
-		result[u] = -1;  // no color is assigned to u
 
-						 // A temporary array to store the available colors. True
-						 // value of available[cr] would mean that the color cr is
-						 // assigned to one of its adjacent vertices
+	for (int u = 1; u < V; u++)
+		result[u] = -1;
+
+
 	bool* available = new bool[V];
 	for (int cr = 0; cr < V; cr++)
 		available[cr] = false;
 
-	// Assign colors to remaining V-1 vertices
 	for (int u = 1; u < V; u++)
 	{
-		// Process all adjacent vertices and flag their colors
-		// as unavailable
 		list<int>::iterator i;
 		for (i = adj[u].begin(); i != adj[u].end(); ++i)
 			if (result[*i] != -1)
 				available[result[*i]] = true;
 
-		// Find the first available color
 		int cr;
 		for (cr = 0; cr < V; cr++)
 			if (available[cr] == false)
 				break;
 
-		result[u] = cr; // Assign the found color
+		result[u] = cr;
 		layersAssigned[u] = cr;
 		if (cr > assigned)
 			assigned = cr;
-						// Reset the values back to false for the next iteration
 		for (i = adj[u].begin(); i != adj[u].end(); ++i)
 			if (result[*i] != -1)
 				available[result[*i]] = false;
 	}
 
-	// print the result
 	for (int u = 0; u < V; u++)
 		cout << "Vertex " << u << " --->  Color "
 		<< result[u] << endl;
 
-	return assigned;
+	return assigned+1;
 }
 
 
@@ -204,7 +194,7 @@ int main()
 	Shader CombineShadowsShader("addShadows.vs", "addShadows.fs");
 	Shader penumbraSizeShader("calculatePenumbraSize.vs", "calculatePenumbraSize.fs");
 	Shader deferredLightingShader("DeferredLighting.vs", "DeferredLighting.fs");
-
+	Shader copyTextureShader("CopyTexture.vs", "CopyTexture.fs");
 
 	// set up vertex data (and buffer(s)) and configure vertex attributes
 	// ------------------------------------------------------------------
@@ -235,7 +225,7 @@ int main()
 
 	// load textures
 	// -------------
-	unsigned int woodTexture = loadTexture("Dark Yellow.png");
+	unsigned int woodTexture = loadTexture("wood2.png");
 
 	// configure depth map FBO
 	// -----------------------
@@ -297,6 +287,9 @@ int main()
 	unsigned int combineShadowsFBO;
 	glGenFramebuffers(1, &combineShadowsFBO);
 
+	unsigned int accumulateTexturesFBO;
+	glGenFramebuffers(1, &accumulateTexturesFBO);
+
 	unsigned int shadowBuffer;
 	glGenTextures(1, &shadowBuffer);
 	glBindTexture(GL_TEXTURE_2D, shadowBuffer);
@@ -339,6 +332,20 @@ int main()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+	unsigned int accumulatedShadowMaps;
+	glGenTextures(1, &accumulatedShadowMaps);
+	glBindTexture(GL_TEXTURE_2D, accumulatedShadowMaps);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	unsigned int accumulatedPenumbraSizes;
+	glGenTextures(1, &accumulatedPenumbraSizes);
+	glBindTexture(GL_TEXTURE_2D, accumulatedPenumbraSizes);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 	unsigned int GaussLayerResult[NUM_LIGHTS];
 	for (int i = 0; i < NUM_LIGHTS; i++)
 	{
@@ -348,6 +355,8 @@ int main()
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, shadowBuffer, 0);
@@ -374,6 +383,10 @@ int main()
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	glBindFramebuffer(GL_FRAMEBUFFER, accumulateTexturesFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, accumulateTexturesFBO, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	glBindFramebuffer(GL_FRAMEBUFFER, combineShadowsFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, CombinedShadows, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -394,28 +407,36 @@ int main()
 	float near_plane = 1.0f, far_plane = 7.5f;
 	//Define the lights below
 	lightSize[0] = 0.1f;
-	lightPos[0] = (glm::vec3(-2.0f, 4.0f, -1.0f));
+	lightPos[0] = (glm::vec3(-18.0f, 4.0f, -17.0f));
 	lightProjection[0] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-	lightView[0] = glm::lookAt(lightPos[0], glm::vec3(-2.0f, 4.0f, 6.5f), glm::vec3(0.0, 1.0, 0.0));
+	lightView[0] = glm::lookAt(lightPos[0], glm::vec3(-15.0f, 0.0f, -15.0f), glm::vec3(0.0, 1.0, 0.0));
 	lightColor[0] = glm::vec3(0.3f);
-	linearAttn[0] = 0.0f;
-	quadraticAttn[0] = 0.0f;
+	linearAttn[0] = 0.025f;
+	quadraticAttn[0] = 0.025f;
 
-	lightSize[1] = 0.2f;
-	lightPos[1] = (glm::vec3(2.0f, 5.0f, -1.0f));
-	lightProjection[1] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-	lightView[1] = glm::lookAt(lightPos[1], glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-	lightColor[1] = glm::vec3(0.3f);
-	linearAttn[1] = 0.0f;
-	quadraticAttn[1] = 0.0f;
-
-	lightSize[2] = 0.2f;
-	lightPos[2] = (glm::vec3(200.0f, 500.0f, 100.0f));
+	lightSize[2] = 0.1f;
+	lightPos[2] = (glm::vec3(2.0f, 5.0f, -1.0f));
 	lightProjection[2] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 	lightView[2] = glm::lookAt(lightPos[2], glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-	lightColor[2] = glm::vec3(0.3f);
-	linearAttn[2] = 0.0f;
-	quadraticAttn[2] = 0.0f;
+	lightColor[2] = glm::vec3(0.3f, 0.0f, 0.0f);
+	linearAttn[2] = 0.025f;
+	quadraticAttn[2] = 0.025f;
+
+	lightSize[1] = 0.2f;
+	lightPos[1] = (glm::vec3(20.0f, 4.0f, 10.0f));
+	lightProjection[1] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+	lightView[1] = glm::lookAt(lightPos[1], glm::vec3(17.0f, 0.0f, 11.0f), glm::vec3(0.0, 1.0, 0.0));
+	lightColor[1] = glm::vec3(0.4f, 0.0f, 0.3f);
+	linearAttn[1] = 0.025f;;
+	quadraticAttn[1] = 0.025f;;
+
+	lightSize[3] = 0.2f;
+	lightPos[3] = (glm::vec3(2.0f, 4.0f, 1.0f));
+	lightProjection[3] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+	lightView[3] = glm::lookAt(lightPos[3], glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+	lightColor[3] = glm::vec3(0.3f);
+	linearAttn[3] = 0.025f;
+	quadraticAttn[3] = 0.025f;
 
 	for (int l = 0; l < NUM_LIGHTS; l++)
 	{
@@ -458,26 +479,31 @@ int main()
 		}
 	}
 	int numLayers = g.greedyColoring(layersAssigned);
-	
+	printf("Total layers assigned: %d\n", numLayers);
 	unsigned int penumbraSize;
 	
 	glGenTextures(1, &penumbraSize);
 	glBindTexture(GL_TEXTURE_2D, penumbraSize);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	
 
 	while (!glfwWindowShouldClose(window))
 	{
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
 		processInput(window);
 		glm::mat4 projection;
 		glm::mat4 view;
+		projection = glm::perspective(camera.Zoom, (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		view = camera.GetViewMatrix();
 
-		lightPos[0].x = sin(glfwGetTime()) * 3.0f;
-		lightPos[0].z = cos(glfwGetTime()) * 2.0f;
-		lightProjection[0] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-		lightView[0] = glm::lookAt(lightPos[0], glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+		lightPos[2].x = sin(glfwGetTime()) * 3.0f;
+		lightPos[2].z = cos(glfwGetTime()) * 2.0f;
+		lightProjection[2] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+		lightView[2] = glm::lookAt(lightPos[2], glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
 
 		glm::mat4 lightSpaceMatrix[NUM_LIGHTS];
 		for (int i = 0; i < NUM_LIGHTS; i++)
@@ -485,24 +511,29 @@ int main()
 			lightSpaceMatrix[i] = lightProjection[i] * lightView[i];
 		}
 
-		for (int i = 0; i <= numLayers; i++)
+		for (int i = 0; i < numLayers; i++)
 		{
-			glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			glBindFramebuffer(GL_FRAMEBUFFER, accumulateTexturesFBO);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, accumulatedShadowMaps, 0);
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+			glBindFramebuffer(GL_FRAMEBUFFER, accumulateTexturesFBO);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, accumulatedPenumbraSizes, 0);
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, penumbraSizeFBO);
-			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 			for (int j = 0; j < NUM_LIGHTS; j++)
 			{
 				if (layersAssigned[j] == i)
 				{
-					glEnable(GL_DEPTH_TEST);
 					//Calculate Depth Map
+					glEnable(GL_DEPTH_TEST);
 					glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 					simpleDepthShader.use();
 					simpleDepthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix[j]);
@@ -512,7 +543,7 @@ int main()
 					renderScene(simpleDepthShader);
 					glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-					glDisable(GL_DEPTH_TEST);
+					//glDisable(GL_DEPTH_TEST);
 
 
 					//Dilate the depth map
@@ -540,16 +571,15 @@ int main()
 
 
 					//Calculate Buffers
-					glEnablei(GL_BLEND, 0);
-					glBlendFunc(GL_ONE, GL_ONE);
-					glBlendEquation(GL_ADD);
+					//glEnablei(GL_BLEND, 0);
+					//glBlendFunc(GL_ONE, GL_ONE);
+					//glBlendEquation(GL_ADD);
 					glEnable(GL_DEPTH_TEST);
 					glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-					projection = glm::perspective(camera.Zoom, (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-					view = camera.GetViewMatrix();
-
 					calculateBuffers.use();
 					glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
+					glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 					GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
 					glDrawBuffers(3, buffers);
 					calculateBuffers.setMat4("projection", projection);
@@ -565,34 +595,56 @@ int main()
 					glBindTexture(GL_TEXTURE_2D, dilatedDepthMap);
 					renderScene(calculateBuffers);
 					glBindFramebuffer(GL_FRAMEBUFFER, 0);
-					glDisablei(GL_BLEND, 0);
+					//glDisablei(GL_BLEND, 0);
 
-
-					//Calculate penumbra sizes
+					//Additively Blend the Shadow Map
 					glEnable(GL_BLEND);
 					glBlendFunc(GL_ONE, GL_ONE);
 					glBlendEquation(GL_ADD);
+					copyTextureShader.use();
+					glBindFramebuffer(GL_FRAMEBUFFER, accumulateTexturesFBO);
+					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, accumulatedShadowMaps, 0);
+					copyTextureShader.setInt("inputTexture", 0);
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, shadowBuffer);
+					renderQuad();
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+					glDisable(GL_BLEND);
+
+					//Calculate penumbra sizes
 					glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 					glBindFramebuffer(GL_FRAMEBUFFER, penumbraSizeFBO);
 					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, penumbraSize, 0);
+					glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 					penumbraSizeShader.use();
 					penumbraSizeShader.setMat4("projection", projection);
 					penumbraSizeShader.setMat4("view", view);
 					penumbraSizeShader.setFloat("lightSize", lightSize[j]);
 					penumbraSizeShader.setMat4("lightSpaceMatrix", lightSpaceMatrix[j]);
 					penumbraSizeShader.setInt("NormalDepth", 0);
-					penumbraSizeShader.setInt("ShadowMap", 1);
-					penumbraSizeShader.setInt("DistanceMap", 2);
-					penumbraSizeShader.setInt("DilatedDepthMap", 3);
+					penumbraSizeShader.setInt("DistanceMap", 1);
+					penumbraSizeShader.setInt("DilatedDepthMap", 2);
 					glActiveTexture(GL_TEXTURE0);
 					glBindTexture(GL_TEXTURE_2D, normalDepthBuffer);
 					glActiveTexture(GL_TEXTURE1);
-					glBindTexture(GL_TEXTURE_2D, shadowBuffer);
-					glActiveTexture(GL_TEXTURE2);
 					glBindTexture(GL_TEXTURE_2D, distanceMap);
-					glActiveTexture(GL_TEXTURE3);
+					glActiveTexture(GL_TEXTURE2);
 					glBindTexture(GL_TEXTURE_2D, dilatedDepthMap);
 					renderScene(penumbraSizeShader);
+					glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+					//Additively Blend the Penumbra Size Maps
+					glEnable(GL_BLEND);
+					glBlendFunc(GL_ONE, GL_ONE);
+					glBlendEquation(GL_ADD);
+					copyTextureShader.use();
+					glBindFramebuffer(GL_FRAMEBUFFER, accumulateTexturesFBO);
+					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, accumulatedPenumbraSizes, 0);
+					copyTextureShader.setInt("inputTexture", 0);
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, penumbraSize);
+					renderQuad();
 					glBindFramebuffer(GL_FRAMEBUFFER, 0);
 					glDisable(GL_BLEND);
 				}
@@ -601,44 +653,54 @@ int main()
 			//Blur shadow map
 			//Penumbra Size Texture also contains step sizes
 			//Shadow map also contains distance from viewer to pixel
+			glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 			glBindFramebuffer(GL_FRAMEBUFFER, Gauss1FBO);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, Gauss1Result, 0);
 			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, Gauss1Result, 0);
 			GaussBlurShader.use();
 			GaussBlurShader.setInt("ShadowMap", 0);
 			GaussBlurShader.setInt("PenumbraSizeMap", 1);
 			GaussBlurShader.setInt("DistanceMap", 2);
+			GaussBlurShader.setMat4("projection", projection);
+			GaussBlurShader.setMat4("view", view);
+			GaussBlurShader.setMat4("lightSpaceMatrix", lightSpaceMatrix[i]);
+
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, shadowBuffer);
+			glBindTexture(GL_TEXTURE_2D, accumulatedShadowMaps);
 			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, penumbraSize);
+			glBindTexture(GL_TEXTURE_2D, accumulatedPenumbraSizes);
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, distanceMap);
 			float x = 0.89442719082100156952748325334158 * 1.11803398875;
 			float y = 0.44721359585778655717526397765935 * 1.11803398875;
 			glm::vec2 direction = glm::vec2(x, y);
 			GaussBlurShader.setVec2("direction", direction);
-
-			//glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-			//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			renderScene(GaussBlurShader);
+			
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GaussLayerResult[i], 0);
+			glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			float x2 = -0.44721359585778655717526397765935 * 1.11803398875;
 			float y2 = 0.89442719082100156952748325334158 * 1.11803398875;
 			glm::vec2 direction2 = glm::vec2(x2, y2);
-			GaussFinalShader.setVec2("direction", direction2);
+			GaussBlurShader.setVec2("direction", direction2);
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, Gauss1Result);
 			renderScene(GaussBlurShader);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+
+
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		deferredLightingShader.use();
 		deferredLightingShader.setInt("anumLights", NUM_LIGHTS);
 		deferredLightingShader.setMat4("projection", projection);
 		deferredLightingShader.setMat4("view", view);
+		deferredLightingShader.setVec3("viewPos", camera.Position);
 		for (int i = 0; i < NUM_LIGHTS; i++)
 		{
 			deferredLightingShader.setVec3(string("lightPositions[") + string(std::to_string(i)) + string("]"), lightPos[i]);
@@ -649,17 +711,44 @@ int main()
 			deferredLightingShader.setInt(string("assignedLayer[") + string(std::to_string(i)) + string("]"), layersAssigned[i]);
 		}
 
-		for (int i = 0; i < NUM_LIGHTS; i++)
+		//deferredLightingShader.setVec3("lightPositions[0]", lightPos[0]);
+		//deferredLightingShader.setFloat("linearAttn[0]", linearAttn[0]);
+		//deferredLightingShader.setFloat("quadraticAttn[0]", quadraticAttn[0]);
+		//deferredLightingShader.setMat4("lightSpaceMatrix[0]", lightSpaceMatrix[0]);
+		//deferredLightingShader.setVec3("lightColors[0]", lightColor[0]);
+		//deferredLightingShader.setInt("assignedLayer[0]", layersAssigned[0]);
+
+		for (int i = 0; i < numLayers; i++)
 		{
 			deferredLightingShader.setInt(string("layerShadowMaps[") + string(std::to_string(i)) + string("]"), i);
-			//CombineShadowsShader.setInt("layerShadowMaps[0]", 0);
 			glActiveTexture(retTexNumber(i));
 			glBindTexture(GL_TEXTURE_2D, GaussLayerResult[i]);
 		}
+		deferredLightingShader.setInt("diffuseTexture", numLayers);
+		glActiveTexture(retTexNumber(numLayers));
+		glBindTexture(GL_TEXTURE_2D, woodTexture);
+
+		//deferredLightingShader.setInt("layerShadowMaps[0]", 0);
+		//glActiveTexture(GL_TEXTURE0);
+		//glBindTexture(GL_TEXTURE_2D, GaussLayerResult[0]);
+
+		//deferredLightingShader.setInt("diffuseTexture", 1);
+		//glActiveTexture(GL_TEXTURE1);
+		//glBindTexture(GL_TEXTURE_2D, woodTexture);
+
 
 		renderScene(deferredLightingShader);
 
-	////glm::mat4 vp = lightProjection[0] * lightView[0];
+
+	//	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	//	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//	// render Depth map to quad for visual debugging
+	//	// ---------------------------------------------
+	//	debugDepthQuad.use();
+	//	glActiveTexture(GL_TEXTURE0);
+	//	glBindTexture(GL_TEXTURE_2D, accumulatedShadowMaps);
+	//	renderQuad();
+	//////glm::mat4 vp = lightProjection[0] * lightView[0];
 
 	////for (int i = 0; i < 4; i++)
 	////{
@@ -788,14 +877,6 @@ int main()
 	//	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
-		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//// render Depth map to quad for visual debugging
-		//// ---------------------------------------------
-		debugDepthQuad.use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, GaussFinalResult);
-		//renderQuad();
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		// -------------------------------------------------------------------------------
@@ -867,6 +948,18 @@ void renderScene(const Shader &shader)
 	renderCube();
 	model = glm::mat4();
 	model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 2.0));
+	model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+	model = glm::scale(model, glm::vec3(0.25));
+	shader.setMat4("model", model);
+	renderCube();
+	model = glm::mat4();
+	model = glm::translate(model, glm::vec3(18.0f, 0.0f, 15.0));
+	model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+	model = glm::scale(model, glm::vec3(0.25));
+	shader.setMat4("model", model);
+	renderCube();
+	model = glm::mat4();
+	model = glm::translate(model, glm::vec3(-15.0f, 0.0f, -15.0));
 	model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
 	model = glm::scale(model, glm::vec3(0.25));
 	shader.setMat4("model", model);

@@ -7,7 +7,6 @@ in vec4 FragPosViewSpace;
 out vec3 FragColor;
 
 uniform sampler2D NormalDepth;
-uniform sampler2D ShadowMap;
 uniform sampler2D DistanceMap;
 uniform sampler2D DilatedDepthMap;
 
@@ -40,13 +39,10 @@ void main()
 		penumbraSize /= dBlocker;
 		//penumbraSize /= (DistanceData.g);
 		penumbraSize /= FragPosViewSpace.w;
+		penumbraSize = max(0.00001, penumbraSize);//min(0.001, penumbraSize);
 
 		vec4 normAndDepth = texture(NormalDepth, projCoords.xy).rgba;
 		vec2 stepSize = get_step_size(normAndDepth.rgb, DistanceData.g, anisoThreshold);
-
-		//float curShadow = texture(ShadowMap, projCoords.xy).r;
-		//float shadowVal = blur(curShadow, stepSize, DistanceData.g, penumbraSize, projCoords.xy);
-
 		FragColor = vec3(penumbraSize, stepSize);
 	}
 	else

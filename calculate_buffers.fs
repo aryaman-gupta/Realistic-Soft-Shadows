@@ -42,7 +42,7 @@ vec3 returnDistanceMap(vec4 fragposLightSpace)
 
 	ret.y = retDistance(viewPos, fs_in.FragPos);
 	//ret.z = ((currentDepth - closestDepth) >= 0.0) ? 0.0 : 1.0;
-	if(ret.x > 0.1)//Needs to be worked on!
+	if(ret.x > 0.11)//Needs to be worked on!
 		ret.z = 1.0;
 	else
 		ret.z = 0.0;
@@ -76,7 +76,7 @@ void main()
 	bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);  
 	vec3 distanceMap = returnDistanceMap(fs_in.FragPosLightSpace);
     float shadow = ShadowCalculation(fs_in.FragPosLightSpace, normal, lightDir);                        
-	ShadowMapOP = vec2(shadow, distanceMap.g);
+	ShadowMapOP = vec2(shadow, 0.0);
 	DistanceMapOP = distanceMap;
 	if(gl_FragCoord.z > 1.0)
 		NormalDepthOP = vec4 (normal, 0.0);
