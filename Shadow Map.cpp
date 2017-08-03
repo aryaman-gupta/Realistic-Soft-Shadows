@@ -27,8 +27,8 @@ void renderCube();
 void renderQuad();
 
 // settings
-const unsigned int SCR_WIDTH = 1280;
-const unsigned int SCR_HEIGHT = 720;
+const unsigned int SCR_WIDTH = 1920;
+const unsigned int SCR_HEIGHT = 1080;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -139,12 +139,12 @@ int Graph::greedyColoring(int layersAssigned[NUM_LIGHTS])
 		<< result[u] << endl;
 
 	return assigned+1;
+
 }
 
 
 int main()
 {
-
 	// glfw: initialize and configure
 	// ------------------------------
 	glfwInit();
@@ -155,7 +155,7 @@ int main()
 
 	// glfw window creation
 	// --------------------
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Shadows", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Screen Space Soft Shadows", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
@@ -166,6 +166,8 @@ int main()
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
+
+	glfwSwapInterval(0);
 
 	// tell GLFW to capture our mouse
 	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -225,7 +227,7 @@ int main()
 
 	// load textures
 	// -------------
-	unsigned int woodTexture = loadTexture("wood2.png");
+	unsigned int woodTexture = loadTexture("Dark Yellow.png");
 
 	// configure depth map FBO
 	// -----------------------
@@ -342,7 +344,7 @@ int main()
 	unsigned int accumulatedPenumbraSizes;
 	glGenTextures(1, &accumulatedPenumbraSizes);
 	glBindTexture(GL_TEXTURE_2D, accumulatedPenumbraSizes);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -414,6 +416,14 @@ int main()
 	linearAttn[0] = 0.025f;
 	quadraticAttn[0] = 0.025f;
 
+	lightSize[1] = 0.15f;
+	lightPos[1] = (glm::vec3(20.0f, 4.0f, 10.0f));
+	lightProjection[1] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+	lightView[1] = glm::lookAt(lightPos[1], glm::vec3(17.0f, 0.0f, 11.0f), glm::vec3(0.0, 1.0, 0.0));
+	lightColor[1] = glm::vec3(0.4f, 0.0f, 0.3f);
+	linearAttn[1] = 0.025f;;
+	quadraticAttn[1] = 0.025f;
+
 	lightSize[2] = 0.1f;
 	lightPos[2] = (glm::vec3(2.0f, 5.0f, -1.0f));
 	lightProjection[2] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
@@ -422,14 +432,6 @@ int main()
 	linearAttn[2] = 0.025f;
 	quadraticAttn[2] = 0.025f;
 
-	lightSize[1] = 0.2f;
-	lightPos[1] = (glm::vec3(20.0f, 4.0f, 10.0f));
-	lightProjection[1] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-	lightView[1] = glm::lookAt(lightPos[1], glm::vec3(17.0f, 0.0f, 11.0f), glm::vec3(0.0, 1.0, 0.0));
-	lightColor[1] = glm::vec3(0.4f, 0.0f, 0.3f);
-	linearAttn[1] = 0.025f;;
-	quadraticAttn[1] = 0.025f;;
-
 	lightSize[3] = 0.2f;
 	lightPos[3] = (glm::vec3(2.0f, 4.0f, 1.0f));
 	lightProjection[3] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
@@ -437,6 +439,102 @@ int main()
 	lightColor[3] = glm::vec3(0.3f);
 	linearAttn[3] = 0.025f;
 	quadraticAttn[3] = 0.025f;
+
+	/*lightSize[4] = 0.15f;
+	lightPos[4] = (glm::vec3(-19.0f, 4.0f, -15.0f));
+	lightProjection[4] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+	lightView[4] = glm::lookAt(lightPos[4], glm::vec3(-15.0f, 0.0f, -15.0f), glm::vec3(0.0, 1.0, 0.0));
+	lightColor[4] = glm::vec3(0.3f);
+	linearAttn[4] = 0.025f;
+	quadraticAttn[4] = 0.025f;
+
+	lightSize[5] = 0.05f;
+	lightPos[5] = (glm::vec3(-150.0f, 4.0f, -17.0f));
+	lightProjection[5] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+	lightView[5] = glm::lookAt(lightPos[5], glm::vec3(-15.0f, 0.0f, -15.0f), glm::vec3(0.0, 1.0, 0.0));
+	lightColor[5] = glm::vec3(0.2f, 0.3f, 0.0f);
+	linearAttn[5] = 0.025f;
+	quadraticAttn[5] = 0.025f;
+
+	lightSize[6] = 0.1f;
+	lightPos[6] = (glm::vec3(-16.0f, 4.0f, -160.0f));
+	lightProjection[6] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+	lightView[6] = glm::lookAt(lightPos[6], glm::vec3(-15.0f, 0.0f, -15.0f), glm::vec3(0.0, 1.0, 0.0));
+	lightColor[6] = glm::vec3(0.7f);
+	linearAttn[6] = 0.025f;
+	quadraticAttn[6] = 0.025f;
+
+	lightSize[7] = 0.1f;
+	lightPos[7] = (glm::vec3(180.0f, 4.0f, 11.0f));
+	lightProjection[7] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+	lightView[7] = glm::lookAt(lightPos[7], glm::vec3(17.0f, 0.0f, 11.0f), glm::vec3(0.0, 1.0, 0.0));
+	lightColor[7] = glm::vec3(0.1f, 0.4f, 0.3f);
+	linearAttn[7] = 0.025f;;
+	quadraticAttn[7] = 0.025f;
+
+	lightSize[8] = 0.2f;
+	lightPos[8] = (glm::vec3(220.0f, 4.0f, 120.0f));
+	lightProjection[8] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+	lightView[8] = glm::lookAt(lightPos[8], glm::vec3(17.0f, 0.0f, 11.0f), glm::vec3(0.0, 1.0, 0.0));
+	lightColor[8] = glm::vec3(0.3f, 0.4f, 0.0f);
+	linearAttn[8] = 0.025f;;
+	quadraticAttn[8] = 0.025f;
+
+	lightSize[9] = 0.1f;
+	lightPos[9] = (glm::vec3(25.0f, 4.0f, 20.0f));
+	lightProjection[9] = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+	lightView[9] = glm::lookAt(lightPos[9], glm::vec3(17.0f, 0.0f, 11.0f), glm::vec3(0.0, 1.0, 0.0));
+	lightColor[9] = glm::vec3(0.3f, 0.4f, 0.0f);
+	linearAttn[9] = 0.025f;;
+	quadraticAttn[9] = 0.025f;*/
+
+	////lightSize[0] = 0.1f;
+	////lightPos[0] = (glm::vec3(3.0f, 4.0f, 1.0f));
+	////lightProjection[0] = glm::perspective(glm::radians(90.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, near_plane, far_plane);
+	////lightView[0] = glm::lookAt(lightPos[0], lightPos[0] + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+	////lightColor[0] = glm::vec3(0.3f);
+	////linearAttn[0] = 0.025f;
+	////quadraticAttn[0] = 0.025f;
+
+	////lightSize[1] = 0.1f;
+	////lightPos[1] = (glm::vec3(3.0f, 4.0f, 1.0f));
+	////lightProjection[1] = glm::perspective(glm::radians(90.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, near_plane, far_plane);
+	////lightView[1] = glm::lookAt(lightPos[1], lightPos[1] + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+	////lightColor[1] = glm::vec3(0.3f);
+	////linearAttn[1] = 0.025f;
+	////quadraticAttn[1] = 0.025f;
+
+	////lightSize[2] = 0.1f;
+	////lightPos[2] = (glm::vec3(3.0f, 4.0f, 1.0f));
+	////lightProjection[2] = glm::perspective(glm::radians(90.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, near_plane, far_plane);
+	////lightView[2] = glm::lookAt(lightPos[2], lightPos[2] + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	////lightColor[2] = glm::vec3(0.3f);
+	////linearAttn[2] = 0.025f;
+	////quadraticAttn[2] = 0.025f;
+
+	////lightSize[3] = 0.1f;
+	////lightPos[3] = (glm::vec3(3.0f, 4.0f, 1.0f));
+	////lightProjection[3] = glm::perspective(glm::radians(90.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, near_plane, far_plane);
+	////lightView[3] = glm::lookAt(lightPos[3], lightPos[3] + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+	////lightColor[3] = glm::vec3(0.3f);
+	////linearAttn[3] = 0.025f;
+	////quadraticAttn[3] = 0.025f;
+
+	//lightSize[4] = 0.1f;
+	//lightPos[4] = (glm::vec3(3.0f, 4.0f, 1.0f));
+	//lightProjection[4] = glm::perspective(glm::radians(90.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, near_plane, far_plane);
+	//lightView[4] = glm::lookAt(lightPos[4], lightPos[4] + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+	//lightColor[4] = glm::vec3(0.3f);
+	//linearAttn[4] = 0.025f;
+	//quadraticAttn[4] = 0.025f;
+
+	////lightSize[5] = 0.1f;
+	////lightPos[5] = (glm::vec3(3.0f, 4.0f, 1.0f));
+	////lightProjection[5] = glm::perspective(glm::radians(90.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, near_plane, far_plane);
+	////lightView[5] = glm::lookAt(lightPos[5], lightPos[5] + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+	////lightColor[5] = glm::vec3(0.3f);
+	////linearAttn[5] = 0.025f;
+	////quadraticAttn[5] = 0.025f;
 
 	for (int l = 0; l < NUM_LIGHTS; l++)
 	{
@@ -484,16 +582,27 @@ int main()
 	
 	glGenTextures(1, &penumbraSize);
 	glBindTexture(GL_TEXTURE_2D, penumbraSize);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	
-
+	int cnt = 0;
+	float timeElapsed = 0.0f;
 	while (!glfwWindowShouldClose(window))
 	{
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
+		timeElapsed += deltaTime;
+		cnt++;
+		if (cnt == 100)
+		{
+			float freq = 100.0 / timeElapsed;
+			printf("Frequency: %f\n", freq);
+			timeElapsed = 0.0f;
+			cnt = 0;
+		}
+
 		processInput(window);
 		glm::mat4 projection;
 		glm::mat4 view;
@@ -530,7 +639,7 @@ int main()
 
 			for (int j = 0; j < NUM_LIGHTS; j++)
 			{
-				if (layersAssigned[j] == i)
+				if (layersAssigned[j] == i && isIntersect(lightProjection[j], lightView[j], projection, view))
 				{
 					//Calculate Depth Map
 					glEnable(GL_DEPTH_TEST);
@@ -736,18 +845,16 @@ int main()
 		//glActiveTexture(GL_TEXTURE1);
 		//glBindTexture(GL_TEXTURE_2D, woodTexture);
 
-
 		renderScene(deferredLightingShader);
-
-
-	//	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-	//	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	//	// render Depth map to quad for visual debugging
-	//	// ---------------------------------------------
-	//	debugDepthQuad.use();
-	//	glActiveTexture(GL_TEXTURE0);
-	//	glBindTexture(GL_TEXTURE_2D, accumulatedShadowMaps);
-	//	renderQuad();
+		
+		//glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//// render Depth map to quad for visual debugging
+		//// ---------------------------------------------
+		//debugDepthQuad.use();
+		//glActiveTexture(GL_TEXTURE0);
+		//glBindTexture(GL_TEXTURE_2D, shadowBuffer);
+		//renderQuad();
 	//////glm::mat4 vp = lightProjection[0] * lightView[0];
 
 	////for (int i = 0; i < 4; i++)
@@ -795,9 +902,7 @@ int main()
 	//		//glm::vec3 lightPos((float)sin(sec), (float)cos(sec), -1.0f);
 	//		// per-frame time logic	
 	//		// --------------------
-	//		float currentFrame = glfwGetTime();
-	//		deltaTime = currentFrame - lastFrame;
-	//		lastFrame = currentFrame;
+
 	//		// input
 	//		// -----
 	//		// change light position over time
@@ -919,7 +1024,7 @@ bool isIntersect(glm::mat4 projection1, glm::mat4 view1, glm::mat4 projection2, 
 	float Radius1 = retDistance(C1Center, glm::vec3(C1NearLowLeft));
 
 	float Radius2 = retDistance(C2Center, glm::vec3(C2NearLowLeft));
-	printf("Radius1 = %f, Radius2 = %f, C2C = %f\n", Radius1, Radius2, CenterToCenter);
+	//printf("Radius1 = %f, Radius2 = %f, C2C = %f\n", Radius1, Radius2, CenterToCenter);
 	if (Radius1 + Radius2 < CenterToCenter)
 		return false;
 	else

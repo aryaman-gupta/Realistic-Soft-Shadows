@@ -64,7 +64,7 @@ void main()
 	float checkPenumbra = DistanceData.b;
 
 		
-	if(penumbraSize > 0.0)
+	if(penumbraSize >= 0.0)
 	{
 		float shadowVal = blur(curShadow, stepSize, distance, penumbraSize, projCoords.xy);
 		FragColor = vec4(shadowVal, shadowVal, shadowVal, 1.0);
@@ -73,7 +73,7 @@ void main()
 
 	else
 	{
-		FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+		FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 	}
 }
 

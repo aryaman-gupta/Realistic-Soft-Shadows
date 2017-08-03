@@ -39,7 +39,7 @@ void main()
 		penumbraSize /= dBlocker;
 		//penumbraSize /= (DistanceData.g);
 		penumbraSize /= FragPosViewSpace.w;
-		penumbraSize = max(0.00001, penumbraSize);//min(0.001, penumbraSize);
+		//penumbraSize = max(0.01, penumbraSize);//min(0.001, penumbraSize);
 
 		vec4 normAndDepth = texture(NormalDepth, projCoords.xy).rgba;
 		vec2 stepSize = get_step_size(normAndDepth.rgb, DistanceData.g, anisoThreshold);
@@ -47,7 +47,7 @@ void main()
 	}
 	else
 	{
-		FragColor = vec3(0.0, 0.0, 0.0);
+		FragColor = vec3(-1.0, 0.0, 0.0);
 	}
 }
 
