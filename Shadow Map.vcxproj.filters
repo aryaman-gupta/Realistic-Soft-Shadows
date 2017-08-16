@@ -91,5 +91,23 @@
     <None Include="addShadows.fs">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="CopyTexture.vs">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="CopyTexture.fs">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="calculatePenumbraSize.fs">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="calculatePenumbraSize.vs">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="DeferredLighting.fs">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="DeferredLighting.vs">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
