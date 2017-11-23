@@ -1,3 +1,5 @@
+# Realistic Soft Shadows
+
 This project implements realistic shadows for 3D Graphics Rendering, using OpenGL.
 
 ![Output sample](https://github.com/aryaman-gupta/ScreenSpaceSoftShadows/blob/master/ShadowOutput.gif)
